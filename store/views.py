@@ -1,6 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse
 from .models import Album,Artist,Booking,Contact
+from django.core.paginator import Paginator,PageNotAnInteger,EmptyPage
 # Create your views here.
 def index(request):
     
@@ -11,21 +12,37 @@ def index(request):
     # because it's now an attribute.
     formatted_albums = ["<li>{}</li>".format(album.title) for album in albums]
     message = """<ul>{}</ul>""".format("\n".join(formatted_albums))
-    return render(request,template_name='store/index.html')
+    return render(request,template_name='store/index.html',context={"albums":albums})
 
 def listing(request):
-    albums=Album.objects.filter(available=True).order_by('-created_at')[:12]
-    formated_albums = ["<li>{}</li>".format(album.title) for album in albums]
-    message = """<ul>{}</ul>""".format("\n".join(formated_albums))
-    return HttpResponse(message)
+    albums_list = Album.objects.filter(available=True)
+    paginator = Paginator(albums_list, 1)
+    page = request.GET.get('page')
+    try:
+        albums = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        albums = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        albums = paginator.page(paginator.num_pages)
+    context = {
+        'albums': albums
+    }
+    return render(request, 'store/listing.html', context)
 
 def detail(request,album_id):
-    
-    id = int(album_id) # make sure we have an integer.
-    album = Album.object.get(pk=id) # get the album with its id.
-    artists = " ".join([artist.name for artist in album.artists.all()]) # grab artists name and create a string out of it.
-    message = "Le nom de l'album est {}. Il a été écrit par {}".format(album['name'], artists)
-    return HttpResponse(message)
+    kh
+    album = get_object_or_404(Album,pk=album_id)
+    artists = [artist.name for artist in album.artists.all()]
+    artists_name = " ".join(artists)
+    context = {
+        'album_title': album.title,
+        'artists_name': artists_name,
+        'album_id': album.id,
+        'thumbnail': album.picture
+    }
+    return render(request, 'store/detail.html', context)
 
 def search(request):
     query = request.GET.get('query')
@@ -38,13 +55,10 @@ def search(request):
     if not albums.exists():
         albums = Album.objects.filter(artists__name__icontains=query)
 
-    if not albums.exists():
-        message = "Misère de misère, nous n'avons trouvé aucun résultat !"
-    else:
-        albums = ["<li>{}</li>".format(album.title) for album in albums]
-        message = """
-            Nous avons trouvé les albums correspondant à votre requête ! Les voici :
-            <ul>{}</ul>
-        """.format("</li><li>".join(albums))
+    title = "Résultats pour la requête %s"%query
+    context = {
+        'albums': albums,
+        'title': title
+    }
 
-    return HttpResponse(message)
+    return render(request,'store/search.html',context)

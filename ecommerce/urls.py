@@ -16,11 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include,re_path
 from django.conf import settings
+from django.conf.urls import url
 from main import views
 urlpatterns = [
-    path('articles/2003/', views.index),
-    re_path(r'^articles/(?P<year>[0-9]{4})/$', views.index),
-    path('store',include('store.urls')),
+    url(r'store',include(('store.urls','store'),namespace='store')),
     path('admin/', admin.site.urls),
 ]
 if settings.DEBUG:
