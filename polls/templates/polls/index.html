@@ -1,0 +1,8 @@
+{% for tut in tutorials%}
+   <li>{{tut.tutorial_title}}</li>
+   {% endfor %}
+      <form method="post">
+         {%csrf_token%}
+         {{form}}
+         <button type="button" class="btn">Submit</button>
+      </form>
